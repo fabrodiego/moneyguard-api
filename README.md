@@ -28,10 +28,23 @@ mvn test              # testes (Postgres embarcado, sem Docker)
 mvn spring-boot:run   # precisa das variáveis acima
 ```
 
-## Endpoints atuais
-| Método | Rota | Auth |
-|---|---|---|
-| POST | `/api/auth/register` | não |
-| POST | `/api/auth/login` | não |
-| GET | `/api/auth/me` | Bearer |
-| GET | `/actuator/health` | não |
+## Endpoints
+Todos em `/api/**` exigem `Authorization: Bearer <token>`, exceto register/login. Cada usuário só enxerga os próprios dados.
+
+| Recurso | Rotas |
+|---|---|
+| Auth | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` |
+| Categorias | `GET/POST /api/categories` (`?type=EXPENSE\|INCOME`), `GET/PUT/DELETE /api/categories/{id}` |
+| Empresas | `GET/POST /api/merchants`, `GET/PUT/DELETE /api/merchants/{id}` |
+| Lançamentos | `GET /api/transactions?from&to&categoryId&type` (padrão: mês atual), `POST`, `GET/PUT/DELETE /api/transactions/{id}` |
+| Metas | `GET /api/goals?includeArchived`, `GET /api/goals/summary`, `POST`, `GET/PUT/DELETE /api/goals/{id}` |
+| Aportes | `GET/POST /api/goals/{id}/contributions`, `DELETE /api/goals/{id}/contributions/{contributionId}` |
+| Insights | `GET /api/insights?period=MONTH\|QUARTER\|SEMESTER\|YEAR&year&number` |
+| Health | `GET /actuator/health` |
+
+### Regras
+- O tipo do lançamento (gasto/renda) vem da categoria.
+- Categoria com lançamentos não pode ser excluída (409).
+- Nome de empresa é comparado sem acento e sem diferenciar maiúsculas ("Sodéxo" = "sodexo").
+- Aporte negativo = retirada. `summary.available` = saldo de todo o histórico − total aportado.
+- Insights: totais do período, comparação com o período anterior, ranking por categoria e série (dias no mês, meses nos demais).
