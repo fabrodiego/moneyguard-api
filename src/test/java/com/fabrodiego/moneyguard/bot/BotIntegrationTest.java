@@ -37,11 +37,11 @@ class BotIntegrationTest extends AbstractIntegrationTest {
     void fluxoCompleto() {
         String token = newUserToken();
         Long food = createCategory(token, "Alimentação", "EXPENSE");
-        post(token, "/api/merchants", Map.of("name", "Sodexo", "categoryId", food));
+        post(token, "/api/merchants", Map.of("name", "Cantina Central", "categoryId", food));
         String discord = "123456789012345678";
 
         // sem vinculo
-        var notLinked = bot("POST", "/api/bot/parse", Map.of("discordUserId", discord, "text", "gastei 8 na sodexo"));
+        var notLinked = bot("POST", "/api/bot/parse", Map.of("discordUserId", discord, "text", "gastei 8 na cantina central"));
         assertThat(notLinked.getStatusCode().value()).isEqualTo(404);
         assertThat(notLinked.getBody().get("title")).isEqualTo("DISCORD_NOT_LINKED");
 
@@ -55,9 +55,9 @@ class BotIntegrationTest extends AbstractIntegrationTest {
         assertThat(get(token, "/api/discord/link").getBody().get("linked")).isEqualTo(true);
 
         // interpretar e lancar
-        var parsed = bot("POST", "/api/bot/parse", Map.of("discordUserId", discord, "text", "acabei de gastar 8 reais na sodexo")).getBody();
+        var parsed = bot("POST", "/api/bot/parse", Map.of("discordUserId", discord, "text", "acabei de gastar 8 reais na cantina central")).getBody();
         assertThat(num(parsed.get("amount"))).isEqualByComparingTo("8");
-        assertThat(((Map<?, ?>) parsed.get("merchant")).get("name")).isEqualTo("Sodexo");
+        assertThat(((Map<?, ?>) parsed.get("merchant")).get("name")).isEqualTo("Cantina Central");
         assertThat(((Map<?, ?>) parsed.get("category")).get("name")).isEqualTo("Alimentação");
 
         var created = bot("POST", "/api/bot/transactions", Map.of(

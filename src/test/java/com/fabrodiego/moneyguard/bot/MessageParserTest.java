@@ -24,9 +24,9 @@ class MessageParserTest {
     static final CategoryRef TRANSPORT = new CategoryRef(5L, "Transporte", TransactionType.EXPENSE);
     static final List<CategoryRef> CATEGORIES = List.of(FOOD, FUN, HOUSE, SALARY, TRANSPORT);
     static final List<MerchantRef> MERCHANTS = List.of(
-        new MerchantRef(10L, "Sodexo", FOOD),
-        new MerchantRef(11L, "Uber", TRANSPORT),
-        new MerchantRef(12L, "Pão de Açúcar", FOOD));
+        new MerchantRef(10L, "Cantina Central", FOOD),
+        new MerchantRef(11L, "Táxi Rápido", TRANSPORT),
+        new MerchantRef(12L, "Mercado São João", FOOD));
 
     static Parsed parse(String text) {
         return MessageParser.parse(text, CATEGORIES, MERCHANTS, TODAY);
@@ -34,10 +34,10 @@ class MessageParserTest {
 
     @Test
     void exemploDoDiego() {
-        Parsed p = parse("acabei de gastar 8 reais na sodexo");
+        Parsed p = parse("acabei de gastar 8 reais na cantina central");
         assertThat(p.amount()).isEqualByComparingTo("8.00");
         assertThat(p.type()).isEqualTo(TransactionType.EXPENSE);
-        assertThat(p.merchant().name()).isEqualTo("Sodexo");
+        assertThat(p.merchant().name()).isEqualTo("Cantina Central");
         assertThat(p.category()).isEqualTo(FOOD);
         assertThat(p.occurredOn()).isEqualTo(TODAY);
         assertThat(p.description()).isNull();
@@ -45,8 +45,8 @@ class MessageParserTest {
 
     @ParameterizedTest
     @CsvSource(delimiter = '|', value = {
-        "gastei 8,50 na Sodexo            | 8.50",
-        "R$ 12.90 no uber                 | 12.90",
+        "gastei 8,50 na Cantina Central            | 8.50",
+        "R$ 12.90 no taxi rapido                 | 12.90",
         "paguei r$1.200,00 de aluguel     | 1200.00",
         "comprei 1.500 de mercado         | 1500.00",
         "torrei 2 mil no cinema           | 2000.00",
@@ -59,7 +59,7 @@ class MessageParserTest {
 
     @Test
     void merchantComAcentoEVariosNomes() {
-        Parsed p = parse("gastei 150 no pao de acucar ontem");
+        Parsed p = parse("gastei 150 no mercado sao joao ontem");
         assertThat(p.merchant().id()).isEqualTo(12L);
         assertThat(p.occurredOn()).isEqualTo(TODAY.minusDays(1));
     }
@@ -93,23 +93,23 @@ class MessageParserTest {
 
     @Test
     void datas() {
-        assertThat(parse("gastei 10 no uber anteontem").occurredOn()).isEqualTo(TODAY.minusDays(2));
-        assertThat(parse("gastei 10 no uber dia 1").occurredOn()).isEqualTo(LocalDate.of(2026, 11, 1));
-        assertThat(parse("gastei 10 no uber dia 28").occurredOn()).isEqualTo(LocalDate.of(2026, 10, 28));
-        assertThat(parse("gastei 10 no uber 15/10").occurredOn()).isEqualTo(LocalDate.of(2026, 10, 15));
-        assertThat(parse("gastei 10 no uber 25/12").occurredOn()).isEqualTo(LocalDate.of(2025, 12, 25));
+        assertThat(parse("gastei 10 no taxi rapido anteontem").occurredOn()).isEqualTo(TODAY.minusDays(2));
+        assertThat(parse("gastei 10 no taxi rapido dia 1").occurredOn()).isEqualTo(LocalDate.of(2026, 11, 1));
+        assertThat(parse("gastei 10 no taxi rapido dia 28").occurredOn()).isEqualTo(LocalDate.of(2026, 10, 28));
+        assertThat(parse("gastei 10 no taxi rapido 15/10").occurredOn()).isEqualTo(LocalDate.of(2026, 10, 15));
+        assertThat(parse("gastei 10 no taxi rapido 25/12").occurredOn()).isEqualTo(LocalDate.of(2025, 12, 25));
     }
 
     @Test
     void dataNaoViraValor() {
-        Parsed p = parse("dia 15 gastei 40 reais no uber");
+        Parsed p = parse("dia 15 gastei 40 reais no taxi rapido");
         assertThat(p.amount()).isEqualByComparingTo("40");
         assertThat(p.occurredOn()).isEqualTo(LocalDate.of(2026, 10, 15));
     }
 
     @Test
     void semValor() {
-        assertThat(parse("gastei na sodexo").amount()).isNull();
+        assertThat(parse("gastei na cantina central").amount()).isNull();
         assertThat(parse("").amount()).isNull();
     }
 }

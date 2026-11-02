@@ -16,7 +16,7 @@ import com.fabrodiego.moneyguard.transaction.TransactionType;
 
 /**
  * Interpreta frases livres do Discord, por regras (sem IA externa):
- * "acabei de gastar 8 reais na sodexo", "recebi 6.500 de salario", "paguei R$ 120,50 de luz ontem".
+ * "acabei de gastar 8 reais na cantina central", "recebi 6.500 de salario", "paguei R$ 120,50 de luz ontem".
  *
  * Trabalha sobre um texto "dobrado" (minusculo, sem acento) com o MESMO tamanho do original,
  * para recortar a descricao do texto original sem perder os acentos.
@@ -180,7 +180,7 @@ public final class MessageParser {
     }
 
     /**
-     * Descricao = o que vem depois da ultima preposicao ("gastei 30 com uber" -> "uber"),
+     * Descricao = o que vem depois da ultima preposicao ("gastei 30 com estacionamento" -> "estacionamento"),
      * recortado do texto original. Nao repete o nome da categoria.
      */
     private static String describe(String original, String folded, CategoryRef category) {

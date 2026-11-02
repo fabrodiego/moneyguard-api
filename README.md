@@ -48,7 +48,7 @@ Todos em `/api/**` exigem `Authorization: Bearer <token>`, exceto register/login
 ### Regras
 - O tipo do lançamento (gasto/renda) vem da categoria.
 - Categoria com lançamentos não pode ser excluída (409).
-- Nome de empresa é comparado sem acento e sem diferenciar maiúsculas ("Sodéxo" = "sodexo").
+- Nome de empresa é comparado sem acento e sem diferenciar maiúsculas ("Cantína Central" = "cantina central").
 - Aporte negativo = retirada. `summary.available` = saldo de todo o histórico − total aportado.
-- Bot: interpreta frases por regras, sem IA externa ("acabei de gastar 8 reais na sodexo" → R$ 8,00, empresa Sodexo, categoria dela, hoje). Entende `R$`, `reais`, `mil`, `1.200,50`, `ontem`, `anteontem`, `dia 15`, `15/10`.
+- Bot: interpreta frases por regras, sem IA externa ("acabei de gastar 8 reais na cantina central" → R$ 8,00, empresa Cantina Central, categoria dela, hoje). Entende `R$`, `reais`, `mil`, `1.200,50`, `ontem`, `anteontem`, `dia 15`, `15/10`.
 - Insights: totais do período, comparação com o período anterior, ranking por categoria e série (dias no mês, meses nos demais).

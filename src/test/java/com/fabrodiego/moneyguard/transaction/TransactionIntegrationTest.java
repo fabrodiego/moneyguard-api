@@ -21,7 +21,7 @@ class TransactionIntegrationTest extends AbstractIntegrationTest {
         String token = newUserToken();
         Long food = createCategory(token, "Alimentação", "EXPENSE");
         Long salary = createCategory(token, "Salário", "INCOME");
-        Long merchant = ((Number) post(token, "/api/merchants", Map.of("name", "Sodexo", "categoryId", food))
+        Long merchant = ((Number) post(token, "/api/merchants", Map.of("name", "Cantina Central", "categoryId", food))
             .getBody().get("id")).longValue();
 
         var created = post(token, "/api/transactions", Map.of(
@@ -30,7 +30,7 @@ class TransactionIntegrationTest extends AbstractIntegrationTest {
         assertThat(created.getBody().get("type")).isEqualTo("EXPENSE");
         assertThat(num(created.getBody().get("amount"))).isEqualByComparingTo("8.00");
         assertThat(created.getBody().get("source")).isEqualTo("WEB");
-        assertThat(((Map<?, ?>) created.getBody().get("merchant")).get("name")).isEqualTo("Sodexo");
+        assertThat(((Map<?, ?>) created.getBody().get("merchant")).get("name")).isEqualTo("Cantina Central");
         Long id = ((Number) created.getBody().get("id")).longValue();
 
         createTransaction(token, salary, "5000", "2026-10-05");

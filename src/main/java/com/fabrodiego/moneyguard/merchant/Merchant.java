@@ -14,7 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
-/** Empresa conhecida: liga um nome ("sodexo") a uma categoria, para o bot classificar sozinho. */
+/** Empresa conhecida: liga um nome ("cantina central") a uma categoria, para o bot classificar sozinho. */
 @Entity
 @Table(name = "merchants")
 public class Merchant {

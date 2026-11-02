@@ -53,13 +53,13 @@ class CategoryMerchantIntegrationTest extends AbstractIntegrationTest {
         Long food = createCategory(token, "Alimentação", "EXPENSE");
         Long transport = createCategory(token, "Transporte", "EXPENSE");
 
-        var created = post(token, "/api/merchants", Map.of("name", "Sodexo", "categoryId", food));
+        var created = post(token, "/api/merchants", Map.of("name", "Cantina Central", "categoryId", food));
         assertThat(created.getStatusCode().value()).isEqualTo(201);
         Long id = ((Number) created.getBody().get("id")).longValue();
 
-        assertThat(post(token, "/api/merchants", Map.of("name", "  SODÉXO ", "categoryId", food)).getStatusCode().value()).isEqualTo(409);
+        assertThat(post(token, "/api/merchants", Map.of("name", "  CANTÍNA CENTRAL ", "categoryId", food)).getStatusCode().value()).isEqualTo(409);
 
-        var updated = put(token, "/api/merchants/" + id, Map.of("name", "Sodexo", "categoryId", transport));
+        var updated = put(token, "/api/merchants/" + id, Map.of("name", "Cantina Central", "categoryId", transport));
         assertThat(((Map<?, ?>) updated.getBody().get("category")).get("name")).isEqualTo("Transporte");
 
         assertThat(getList(token, "/api/merchants")).hasSize(1);

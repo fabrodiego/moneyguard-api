@@ -8,7 +8,7 @@ public final class TextNormalizer {
     private TextNormalizer() {
     }
 
-    /** "  Sodéxo   Restaurante " -> "sodexo restaurante" */
+    /** "  Cantína   Central " -> "cantina central" */
     public static String normalize(String text) {
         String noAccents = Normalizer.normalize(text, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
         return noAccents.toLowerCase(Locale.ROOT).trim().replaceAll("\\s+", " ");
