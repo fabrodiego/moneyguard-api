@@ -39,3 +39,5 @@ app:
     key: ${CRYPTO_KEY}
   cors:
     origins: ${CORS_ORIGINS:https://moneyguard.fabrodiego.com}
+  bot:
+    api-key: ${BOT_API_KEY:}

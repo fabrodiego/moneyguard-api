@@ -23,6 +23,8 @@ public abstract class AbstractIntegrationTest {
 
     private static final EmbeddedPostgres POSTGRES;
 
+    protected static final String BOT_KEY = "chave-do-bot-para-teste";
+
     static {
         try {
             POSTGRES = EmbeddedPostgres.start();
@@ -38,6 +40,7 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.datasource.password", () -> "postgres");
         registry.add("app.jwt.secret", () -> "dGVzdGUtdGVzdGUtdGVzdGUtdGVzdGUtdGVzdGUtMzJi");
         registry.add("app.crypto.key", () -> "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+        registry.add("app.bot.api-key", () -> BOT_KEY);
     }
 
     @Value("${local.server.port}")

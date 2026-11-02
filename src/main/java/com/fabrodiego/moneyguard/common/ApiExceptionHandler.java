@@ -8,7 +8,10 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import com.fabrodiego.moneyguard.discord.DiscordNotLinkedException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -19,6 +22,11 @@ public class ApiExceptionHandler {
             .map(e -> e.getField() + ": " + e.getDefaultMessage())
             .collect(Collectors.joining("; "));
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    ProblemDetail methodValidation(HandlerMethodValidationException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Parametro invalido");
     }
 
     @ExceptionHandler(BadCredentialsException.class)
@@ -39,6 +47,14 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ConflictException.class)
     ProblemDetail conflict(ConflictException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    /** O bot reconhece pelo title e pede o /vincular. */
+    @ExceptionHandler(DiscordNotLinkedException.class)
+    ProblemDetail discordNotLinked(DiscordNotLinkedException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problem.setTitle("DISCORD_NOT_LINKED");
+        return problem;
     }
 
     @ExceptionHandler(NotFoundException.class)

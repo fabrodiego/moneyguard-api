@@ -12,7 +12,7 @@ import com.fabrodiego.moneyguard.config.AppProperties;
 class CryptoServiceTest {
 
     private final CryptoService crypto = new CryptoService(
-        new AppProperties(null, new AppProperties.Crypto(Base64.getEncoder().encodeToString(new byte[32])), null));
+        new AppProperties(null, new AppProperties.Crypto(Base64.getEncoder().encodeToString(new byte[32])), null, null));
 
     @Test
     void roundTrip() {
@@ -35,7 +35,7 @@ class CryptoServiceTest {
     @Test
     void rejectsWrongKeySize() {
         assertThatThrownBy(() -> new CryptoService(
-            new AppProperties(null, new AppProperties.Crypto(Base64.getEncoder().encodeToString(new byte[16])), null)))
+            new AppProperties(null, new AppProperties.Crypto(Base64.getEncoder().encodeToString(new byte[16])), null, null)))
             .isInstanceOf(IllegalStateException.class);
     }
 }
