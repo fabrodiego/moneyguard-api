@@ -10,6 +10,7 @@ import com.fabrodiego.moneyguard.category.CategoryDtos.CreateCategoryRequest;
 import com.fabrodiego.moneyguard.category.CategoryDtos.UpdateCategoryRequest;
 import com.fabrodiego.moneyguard.common.ConflictException;
 import com.fabrodiego.moneyguard.common.NotFoundException;
+import com.fabrodiego.moneyguard.recurrence.RecurrenceRepository;
 import com.fabrodiego.moneyguard.transaction.TransactionRepository;
 import com.fabrodiego.moneyguard.transaction.TransactionType;
 
@@ -18,10 +19,13 @@ public class CategoryService {
 
     private final CategoryRepository categories;
     private final TransactionRepository transactions;
+    private final RecurrenceRepository recurrences;
 
-    public CategoryService(CategoryRepository categories, TransactionRepository transactions) {
+    public CategoryService(CategoryRepository categories, TransactionRepository transactions,
+                           RecurrenceRepository recurrences) {
         this.categories = categories;
         this.transactions = transactions;
+        this.recurrences = recurrences;
     }
 
     @Transactional(readOnly = true)
@@ -63,6 +67,9 @@ public class CategoryService {
         Category category = get(userId, id);
         if (transactions.existsByCategoryId(category.getId())) {
             throw new ConflictException("Categoria possui lancamentos; mova-os antes de excluir");
+        }
+        if (recurrences.existsByCategoryId(category.getId())) {
+            throw new ConflictException("Categoria usada em assinaturas; troque a categoria delas antes de excluir");
         }
         categories.delete(category);
     }

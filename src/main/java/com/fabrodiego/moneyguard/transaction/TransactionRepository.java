@@ -28,4 +28,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Object[]> findAllTypeAndAmount(Long userId);
 
     boolean existsByCategoryId(Long categoryId);
+
+    boolean existsByRecurrenceIdAndOccurredOn(Long recurrenceId, LocalDate occurredOn);
 }

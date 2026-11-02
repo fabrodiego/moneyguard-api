@@ -60,6 +60,10 @@ public class Transaction {
     @Column(nullable = false, updatable = false)
     private TransactionSource source;
 
+    /** Assinatura que gerou este lancamento (null = lancado a mao). */
+    @Column(name = "recurrence_id", updatable = false)
+    private Long recurrenceId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -81,6 +85,18 @@ public class Transaction {
         this.amount = amount;
         this.description = description;
         this.occurredOn = occurredOn;
+    }
+
+    public static Transaction fromRecurrence(Long userId, Category category, Merchant merchant, BigDecimal amount,
+                                             String description, LocalDate occurredOn, Long recurrenceId) {
+        Transaction t = new Transaction(userId, category, merchant, amount, description, occurredOn,
+            TransactionSource.RECURRENCE);
+        t.recurrenceId = recurrenceId;
+        return t;
+    }
+
+    public Long getRecurrenceId() {
+        return recurrenceId;
     }
 
     public Long getId() {
