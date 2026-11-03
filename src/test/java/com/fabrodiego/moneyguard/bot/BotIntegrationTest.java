@@ -112,4 +112,33 @@ class BotIntegrationTest extends AbstractIntegrationTest {
         // codigo invalido
         assertThat(bot("POST", "/api/bot/link", Map.of("discordUserId", discord, "code", "XXXXXX")).getStatusCode().value()).isEqualTo(400);
     }
+
+    @Test
+    void assinaturaPeloBot() {
+        String token = newUserToken();
+        Long fun = createCategory(token, "Lazer", "EXPENSE");
+        String discord = "222222222222222222";
+        bot("POST", "/api/bot/link", Map.of("discordUserId", discord, "code", linkCode(token)));
+        int today = java.time.LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).getDayOfMonth();
+
+        var parsed = bot("POST", "/api/bot/parse", Map.of("discordUserId", discord,
+            "text", "assinei streaming 55,90 todo dia " + today)).getBody();
+        Map<?, ?> rec = (Map<?, ?>) parsed.get("recurrence");
+        assertThat(rec.get("frequency")).isEqualTo("MONTHLY");
+        assertThat(rec.get("dayOfMonth")).isEqualTo(today);
+        assertThat(parsed.get("description")).isEqualTo("Streaming");
+
+        var created = bot("POST", "/api/bot/recurrences", Map.of("discordUserId", discord, "name", "Streaming",
+            "categoryId", fun, "amount", 55.9, "frequency", "MONTHLY", "dayOfMonth", today));
+        assertThat(created.getStatusCode().value()).isEqualTo(201);
+        assertThat(created.getBody().get("launchedToday")).isEqualTo(true);
+
+        var list = bot("GET", "/api/bot/recurrences?discordUserId=" + discord, null).getBody();
+        assertThat((List<?>) list.get("active")).hasSize(1);
+        assertThat(num(((Map<?, ?>) list.get("summary")).get("monthlyExpenses"))).isEqualByComparingTo("55.90");
+
+        // anual sem mes e invalido
+        assertThat(bot("POST", "/api/bot/recurrences", Map.of("discordUserId", discord, "name", "X",
+            "categoryId", fun, "amount", 10, "frequency", "YEARLY", "dayOfMonth", 1)).getStatusCode().value()).isEqualTo(400);
+    }
 }

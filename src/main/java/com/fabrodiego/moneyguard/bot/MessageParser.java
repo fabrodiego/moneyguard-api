@@ -12,6 +12,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.fabrodiego.moneyguard.common.Money;
+import com.fabrodiego.moneyguard.recurrence.Frequency;
 import com.fabrodiego.moneyguard.transaction.TransactionType;
 
 /**
@@ -29,13 +30,19 @@ public final class MessageParser {
     public record MerchantRef(Long id, String name, CategoryRef category) {
     }
 
+    /** Frase de assinatura ("todo dia 5", "por mes", "todo ano em 15/03"). monthOfYear so no anual. */
+    public record RecurrenceHint(Frequency frequency, int dayOfMonth, Integer monthOfYear) {
+    }
+
+    /** recurrence != null = a frase descreve uma assinatura, nao um lancamento avulso. */
     public record Parsed(
         BigDecimal amount,
         TransactionType type,
         CategoryRef category,
         MerchantRef merchant,
         LocalDate occurredOn,
-        String description) {
+        String description,
+        RecurrenceHint recurrence) {
     }
 
     private static final Set<String> INCOME_WORDS = Set.of(
@@ -47,7 +54,15 @@ public final class MessageParser {
         "em", "no", "na", "nos", "nas", "com", "de", "do", "da", "dos", "das", "pra", "para", "pro", "num", "numa");
     private static final Set<String> FILLER = Set.of(
         "hoje", "ontem", "anteontem", "agora", "reais", "real", "conto", "contos", "pila", "pilas", "r",
-        "acabei", "de", "gastar", "gastei", "paguei", "comprei", "recebi", "ganhei", "um", "uma", "o", "a", "e");
+        "acabei", "de", "gastar", "gastei", "paguei", "comprei", "recebi", "ganhei", "um", "uma", "o", "a", "e",
+        "todo", "toda", "todos", "os", "mes", "meses", "ano", "anos", "por", "ao", "mensal", "mensalidade",
+        "mensalmente", "anual", "anualmente", "assinei", "assinatura", "assinar", "dia", "em", "pago", "pagar");
+
+    private static final Pattern YEARLY = Pattern.compile(
+        "\\b(todo ano|todos os anos|por ano|ao ano|anualmente|anual)\\b|/ano\\b");
+    private static final Pattern MONTHLY = Pattern.compile(
+        "\\b(todo mes|todos os meses|por mes|ao mes|mensalidade|mensalmente|mensal|assinei|assinatura|assinar)\\b|/mes\\b");
+    private static final Pattern EVERY_DAY = Pattern.compile("\\btodo dia (\\d{1,2})\\b");
 
     private static final Pattern RELATIVE_DAY = Pattern.compile("\\b(anteontem|ontem|hoje)\\b");
     private static final Pattern DAY_MONTH = Pattern.compile("\\b(\\d{1,2})/(\\d{1,2})(?:/(\\d{2,4}))?\\b");
@@ -63,7 +78,8 @@ public final class MessageParser {
         String original = text == null ? "" : text;
         StringBuilder work = new StringBuilder(fold(original));
 
-        LocalDate date = extractDate(work, today);
+        RecurrenceHint recurrence = extractRecurrence(work, today);
+        LocalDate date = recurrence != null ? today : extractDate(work, today);
         BigDecimal amount = extractAmount(work);
         String folded = work.toString();
 
@@ -78,7 +94,7 @@ public final class MessageParser {
             .max(Comparator.comparingInt(c -> c.name().length())));
 
         String description = merchant.isPresent() ? null : describe(original, work.toString(), category.orElse(null));
-        return new Parsed(amount, type, category.orElse(null), merchant.orElse(null), date, description);
+        return new Parsed(amount, type, category.orElse(null), merchant.orElse(null), date, description, recurrence);
     }
 
     /** Minusculo e sem acento, caractere por caractere (mesmo tamanho do original). */
@@ -180,39 +196,25 @@ public final class MessageParser {
     }
 
     /**
-     * Descricao = o que vem depois da ultima preposicao ("gastei 30 com estacionamento" -> "estacionamento"),
-     * recortado do texto original. Nao repete o nome da categoria.
+     * Descricao = o que vem depois da ultima preposicao ("gastei 30 com estacionamento" -> "estacionamento");
+     * sem preposicao (ou nada depois dela), as palavras que sobraram ("assinei streaming 55" -> "Streaming").
+     * Recortada do texto original para manter os acentos. Nao repete o nome da categoria.
      */
     private static String describe(String original, String folded, CategoryRef category) {
-        String[] tokens = folded.split("(?<=\\s)|(?=\\s)");
-        int pos = 0;
-        int lastPrepEnd = -1;
-        for (String token : tokens) {
-            String w = token.trim().replaceAll("[^\\p{L}\\p{N}]", "");
+        List<int[]> spans = new java.util.ArrayList<>();
+        Matcher m = Pattern.compile("\\S+").matcher(folded);
+        int lastPrep = -1;
+        while (m.find()) {
+            String w = clean(m.group());
             if (PREPOSITIONS.contains(w)) {
-                lastPrepEnd = pos + token.length();
+                lastPrep = spans.size();
             }
-            pos += token.length();
+            spans.add(new int[] {m.start(), m.end()});
         }
-        if (lastPrepEnd < 0 || lastPrepEnd >= original.length()) {
-            return null;
+        String result = join(original, folded, spans.subList(lastPrep + 1, spans.size()));
+        if (result.isEmpty() && lastPrep >= 0) {
+            result = join(original, folded, spans);
         }
-        String tailFolded = folded.substring(lastPrepEnd);
-        String tail = original.substring(lastPrepEnd);
-        StringBuilder kept = new StringBuilder();
-        String[] foldedWords = tailFolded.trim().split("\\s+");
-        String[] originalWords = tail.trim().split("\\s+");
-        for (int i = 0; i < foldedWords.length && i < originalWords.length; i++) {
-            String w = foldedWords[i].replaceAll("[^\\p{L}\\p{N}]", "");
-            if (w.isEmpty() || FILLER.contains(w)) {
-                continue;
-            }
-            if (!kept.isEmpty()) {
-                kept.append(' ');
-            }
-            kept.append(originalWords[i].replaceAll("[.!?,;:]+$", ""));
-        }
-        String result = kept.toString().trim();
         if (result.isEmpty()) {
             return null;
         }
@@ -221,6 +223,87 @@ public final class MessageParser {
         }
         result = result.length() > 60 ? result.substring(0, 60).trim() : result;
         return Character.toUpperCase(result.charAt(0)) + result.substring(1);
+    }
+
+    private static String join(String original, String folded, List<int[]> spans) {
+        StringBuilder kept = new StringBuilder();
+        for (int[] span : spans) {
+            String w = clean(folded.substring(span[0], span[1]));
+            if (w.isEmpty() || FILLER.contains(w) || PREPOSITIONS.contains(w) || w.chars().allMatch(Character::isDigit)) {
+                continue;
+            }
+            if (!kept.isEmpty()) {
+                kept.append(' ');
+            }
+            kept.append(original.substring(span[0], span[1]).replaceAll("^[^\\p{L}\\p{N}]+|[^\\p{L}\\p{N}]+$", ""));
+        }
+        return kept.toString().trim();
+    }
+
+    private static String clean(String token) {
+        return token.replaceAll("[^\\p{L}\\p{N}]", "");
+    }
+
+    /** Detecta assinatura e tira do texto as palavras de recorrencia e o dia/data da cobranca. */
+    private static RecurrenceHint extractRecurrence(StringBuilder work, LocalDate today) {
+        Matcher yearly = YEARLY.matcher(work);
+        if (yearly.find()) {
+            blank(work, yearly.start(), yearly.end());
+            blankAll(work, MONTHLY);
+            int day = today.getDayOfMonth();
+            int month = today.getMonthValue();
+            Matcher dm = DAY_MONTH.matcher(work);
+            if (dm.find() && safeDate(2024, Integer.parseInt(dm.group(2)), Integer.parseInt(dm.group(1))) != null) {
+                day = Integer.parseInt(dm.group(1));
+                month = Integer.parseInt(dm.group(2));
+                blank(work, dm.start(), dm.end());
+            } else {
+                Integer d = takeDay(work);
+                if (d != null) {
+                    day = d;
+                }
+            }
+            return new RecurrenceHint(Frequency.YEARLY, day, month);
+        }
+        Matcher everyDay = EVERY_DAY.matcher(work);
+        boolean hasEveryDay = everyDay.find();
+        Matcher monthly = MONTHLY.matcher(work);
+        if (!hasEveryDay && !monthly.find()) {
+            return null;
+        }
+        int day = today.getDayOfMonth();
+        if (hasEveryDay && validDay(everyDay.group(1))) {
+            day = Integer.parseInt(everyDay.group(1));
+            blank(work, everyDay.start(), everyDay.end());
+        }
+        blankAll(work, MONTHLY);
+        Integer d = takeDay(work);
+        if (d != null) {
+            day = d;
+        }
+        return new RecurrenceHint(Frequency.MONTHLY, day, null);
+    }
+
+    private static Integer takeDay(StringBuilder work) {
+        Matcher m = DAY_ONLY.matcher(work);
+        if (m.find() && validDay(m.group(1))) {
+            int day = Integer.parseInt(m.group(1)); // ler antes de apagar: o Matcher le o texto ao vivo
+            blank(work, m.start(), m.end());
+            return day;
+        }
+        return null;
+    }
+
+    private static boolean validDay(String raw) {
+        int d = Integer.parseInt(raw);
+        return d >= 1 && d <= 31;
+    }
+
+    private static void blankAll(StringBuilder work, Pattern pattern) {
+        Matcher m = pattern.matcher(work);
+        while (m.find()) {
+            blank(work, m.start(), m.end());
+        }
     }
 
     private static boolean containsWord(String haystack, String needle) {

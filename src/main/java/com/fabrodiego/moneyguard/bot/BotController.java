@@ -13,7 +13,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fabrodiego.moneyguard.bot.BotDtos.BotRecurrenceRequest;
+import com.fabrodiego.moneyguard.bot.BotDtos.BotRecurrenceResponse;
 import com.fabrodiego.moneyguard.bot.BotDtos.BotTransactionRequest;
+import com.fabrodiego.moneyguard.bot.BotDtos.RecurrenceList;
 import com.fabrodiego.moneyguard.bot.BotDtos.DiscordUserRequest;
 import com.fabrodiego.moneyguard.bot.BotDtos.LinkRequest;
 import com.fabrodiego.moneyguard.bot.BotDtos.LinkResponse;
@@ -67,6 +70,17 @@ public class BotController {
     @ResponseStatus(HttpStatus.CREATED)
     public TransactionResponse create(@Valid @RequestBody BotTransactionRequest req) {
         return service.createTransaction(req);
+    }
+
+    @PostMapping("/recurrences")
+    @ResponseStatus(HttpStatus.CREATED)
+    public BotRecurrenceResponse createRecurrence(@Valid @RequestBody BotRecurrenceRequest req) {
+        return service.createRecurrence(req);
+    }
+
+    @GetMapping("/recurrences")
+    public RecurrenceList recurrences(@RequestParam @Pattern(regexp = BotDtos.DISCORD_ID) String discordUserId) {
+        return service.recurrences(discordUserId);
     }
 
     @DeleteMapping("/transactions/{id}")

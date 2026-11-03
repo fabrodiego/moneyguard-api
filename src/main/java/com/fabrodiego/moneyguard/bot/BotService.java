@@ -10,7 +10,11 @@ import java.util.Locale;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fabrodiego.moneyguard.bot.BotDtos.BotRecurrenceRequest;
+import com.fabrodiego.moneyguard.bot.BotDtos.BotRecurrenceResponse;
 import com.fabrodiego.moneyguard.bot.BotDtos.BotTransactionRequest;
+import com.fabrodiego.moneyguard.bot.BotDtos.RecurrenceInfo;
+import com.fabrodiego.moneyguard.bot.BotDtos.RecurrenceList;
 import com.fabrodiego.moneyguard.bot.BotDtos.ParseResponse;
 import com.fabrodiego.moneyguard.bot.BotDtos.Ref;
 import com.fabrodiego.moneyguard.bot.BotDtos.Summary;
@@ -25,6 +29,10 @@ import com.fabrodiego.moneyguard.insight.InsightDtos.InsightResponse;
 import com.fabrodiego.moneyguard.insight.InsightPeriod;
 import com.fabrodiego.moneyguard.insight.InsightService;
 import com.fabrodiego.moneyguard.merchant.MerchantRepository;
+import com.fabrodiego.moneyguard.recurrence.RecurrenceDtos.RecurrenceRequest;
+import com.fabrodiego.moneyguard.recurrence.RecurrenceDtos.RecurrenceResponse;
+import com.fabrodiego.moneyguard.recurrence.RecurrenceService;
+import com.fabrodiego.moneyguard.transaction.TransactionRepository;
 import com.fabrodiego.moneyguard.transaction.TransactionDtos.TransactionRequest;
 import com.fabrodiego.moneyguard.transaction.TransactionDtos.TransactionResponse;
 import com.fabrodiego.moneyguard.transaction.TransactionService;
@@ -44,11 +52,14 @@ public class BotService {
     private final TransactionService transactions;
     private final InsightService insights;
     private final GoalService goals;
+    private final RecurrenceService recurrences;
+    private final TransactionRepository transactionsRepo;
     private final Clock clock;
 
     public BotService(DiscordLinkService links, UserRepository users, CategoryRepository categories,
                       MerchantRepository merchants, TransactionService transactions, InsightService insights,
-                      GoalService goals, Clock clock) {
+                      GoalService goals, RecurrenceService recurrences, TransactionRepository transactionsRepo,
+                      Clock clock) {
         this.links = links;
         this.users = users;
         this.categories = categories;
@@ -56,6 +67,8 @@ public class BotService {
         this.transactions = transactions;
         this.insights = insights;
         this.goals = goals;
+        this.recurrences = recurrences;
+        this.transactionsRepo = transactionsRepo;
         this.clock = clock;
     }
 
@@ -79,9 +92,11 @@ public class BotService {
             .map(m -> new MerchantRef(m.getId(), m.getName(), ref(m.getCategory()))).toList();
 
         Parsed p = MessageParser.parse(text, cats, merch, LocalDate.now(clock));
+        RecurrenceInfo recurrence = p.recurrence() == null ? null
+            : new RecurrenceInfo(p.recurrence().frequency(), p.recurrence().dayOfMonth(), p.recurrence().monthOfYear());
         return new ParseResponse(p.amount(), p.type(), p.occurredOn(), p.description(),
             p.category() == null ? null : new Ref(p.category().id(), p.category().name()),
-            p.merchant() == null ? null : new Ref(p.merchant().id(), p.merchant().name()));
+            p.merchant() == null ? null : new Ref(p.merchant().id(), p.merchant().name()), recurrence);
     }
 
     @Transactional(readOnly = true)
@@ -94,6 +109,24 @@ public class BotService {
         Long userId = links.userIdOf(req.discordUserId());
         return transactions.create(userId, new TransactionRequest(req.categoryId(), req.merchantId(), req.amount(),
             req.description(), req.occurredOn()), TransactionSource.DISCORD);
+    }
+
+    @Transactional
+    public BotRecurrenceResponse createRecurrence(BotRecurrenceRequest req) {
+        Long userId = links.userIdOf(req.discordUserId());
+        RecurrenceResponse created = recurrences.create(userId, new RecurrenceRequest(req.name(), req.categoryId(),
+            req.merchantId(), req.amount(), req.frequency(), req.dayOfMonth(), req.monthOfYear(), null, null, true));
+        LocalDate today = LocalDate.now(clock);
+        boolean launchedToday = created.nextDueOn() != null && created.nextDueOn().isAfter(today)
+            && transactionsRepo.existsByRecurrenceIdAndOccurredOn(created.id(), today);
+        return new BotRecurrenceResponse(created, launchedToday);
+    }
+
+    @Transactional(readOnly = true)
+    public RecurrenceList recurrences(String discordUserId) {
+        Long userId = links.userIdOf(discordUserId);
+        return new RecurrenceList(recurrences.summary(userId),
+            recurrences.list(userId).stream().filter(r -> r.active() && r.nextDueOn() != null).toList());
     }
 
     @Transactional

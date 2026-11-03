@@ -43,7 +43,7 @@ Todos em `/api/**` exigem `Authorization: Bearer <token>`, exceto register/login
 | Assinaturas | `GET/POST /api/recurrences`, `GET /api/recurrences/summary`, `GET/PUT/DELETE /api/recurrences/{id}` |
 | Insights | `GET /api/insights?period=MONTH\|QUARTER\|SEMESTER\|YEAR&year&number` |
 | Discord (site) | `GET/DELETE /api/discord/link`, `POST /api/discord/link-code` (código de 6 caracteres, vale 10 min) |
-| Bot (`X-Bot-Key`) | `POST /api/bot/link`, `/unlink`, `/parse`, `/transactions`; `DELETE /api/bot/transactions/{id}`; `GET /api/bot/categories`, `/summary` |
+| Bot (`X-Bot-Key`) | `POST /api/bot/link`, `/unlink`, `/parse`, `/transactions`, `/recurrences`; `DELETE /api/bot/transactions/{id}`; `GET /api/bot/categories`, `/summary`, `/recurrences` |
 | Health | `GET /actuator/health` |
 
 ### Regras
@@ -51,6 +51,6 @@ Todos em `/api/**` exigem `Authorization: Bearer <token>`, exceto register/login
 - Categoria com lançamentos não pode ser excluída (409).
 - Nome de empresa é comparado sem acento e sem diferenciar maiúsculas ("Cantína Central" = "cantina central").
 - Aporte negativo = retirada. `summary.available` = saldo de todo o histórico − total aportado.
-- Bot: interpreta frases por regras, sem IA externa ("acabei de gastar 8 reais na cantina central" → R$ 8,00, empresa Cantina Central, categoria dela, hoje). Entende `R$`, `reais`, `mil`, `1.200,50`, `ontem`, `anteontem`, `dia 15`, `15/10`.
+- Bot: interpreta frases por regras, sem IA externa ("acabei de gastar 8 reais na cantina central" → R$ 8,00, empresa Cantina Central, categoria dela, hoje). Entende `R$`, `reais`, `mil`, `1.200,50`, `ontem`, `anteontem`, `dia 15`, `15/10`. Frases com `assinei`, `todo mês`, `por mês`, `todo dia 5`, `todo ano em 15/03` viram assinatura.
 - Assinaturas (gastos e rendas recorrentes, mensais ou anuais): lançadas automaticamente no dia da cobrança (todo dia 00:05 e ao subir a API, recuperando dias perdidos). Nunca lança retroativo nem duplica (índice único por assinatura + data). Dia 31 vira o último dia do mês.
 - Insights: totais do período, comparação com o período anterior, ranking por categoria e série (dias no mês, meses nos demais).
