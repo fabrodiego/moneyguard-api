@@ -41,6 +41,7 @@ Todos em `/api/**` exigem `Authorization: Bearer <token>`, exceto register/login
 | Metas | `GET /api/goals?includeArchived`, `GET /api/goals/summary`, `POST`, `GET/PUT/DELETE /api/goals/{id}` |
 | Aportes | `GET/POST /api/goals/{id}/contributions`, `DELETE /api/goals/{id}/contributions/{contributionId}` |
 | Assinaturas | `GET/POST /api/recurrences`, `GET /api/recurrences/summary`, `GET/PUT/DELETE /api/recurrences/{id}` |
+| Importação | `POST /api/imports/preview` (multipart `file`: extrato CSV ou fatura PDF do Inter), `POST /api/imports/approve` |
 | Insights | `GET /api/insights?period=MONTH\|QUARTER\|SEMESTER\|YEAR&year&number` |
 | Discord (site) | `GET/DELETE /api/discord/link`, `POST /api/discord/link-code` (código de 6 caracteres, vale 10 min) |
 | Bot (`X-Bot-Key`) | `POST /api/bot/link`, `/unlink`, `/parse`, `/transactions`, `/recurrences`; `DELETE /api/bot/transactions/{id}`; `GET /api/bot/categories`, `/summary`, `/recurrences` |
@@ -53,4 +54,5 @@ Todos em `/api/**` exigem `Authorization: Bearer <token>`, exceto register/login
 - Aporte negativo = retirada. `summary.available` = saldo de todo o histórico − total aportado.
 - Bot: interpreta frases por regras, sem IA externa ("acabei de gastar 8 reais na cantina central" → R$ 8,00, empresa Cantina Central, categoria dela, hoje). Entende `R$`, `reais`, `mil`, `1.200,50`, `ontem`, `anteontem`, `dia 15`, `15/10`. Frases com `assinei`, `todo mês`, `por mês`, `todo dia 5`, `todo ano em 15/03` viram assinatura.
 - Assinaturas (gastos e rendas recorrentes, mensais ou anuais): lançadas automaticamente no dia da cobrança (todo dia 00:05 e ao subir a API, recuperando dias perdidos). Nunca lança retroativo nem duplica (índice único por assinatura + data). Dia 31 vira o último dia do mês.
+- Importação (Banco Inter): o arquivo é lido só em memória e nunca guardado. A prévia não grava nada; cada linha só vira lançamento (origem `IMPORT`) quando é aprovada, e linha pulada não deixa rastro. Pagamento de fatura (no extrato e na fatura) e estornos ficam de fora. Parcela N entra no mês em que foi cobrada. A mesma linha não é importada duas vezes (HMAC da linha em `import_key`). Ao aprovar com uma empresa, o texto do banco vira apelido dela e passa a ser sugerido nas próximas importações.
 - Insights: totais do período, comparação com o período anterior, ranking por categoria e série (dias no mês, meses nos demais).

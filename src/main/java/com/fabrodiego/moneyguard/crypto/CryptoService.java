@@ -3,10 +3,13 @@ package com.fabrodiego.moneyguard.crypto;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.HexFormat;
 
 import javax.crypto.Cipher;
+import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -28,6 +31,8 @@ public class CryptoService {
     private static final String TRANSFORMATION = "AES/GCM/NoPadding";
 
     private final SecretKey key;
+    /** Chave do HMAC derivada da chave mestra, para nunca reusar a mesma chave em dois algoritmos. */
+    private final SecretKey macKey;
     private final SecureRandom random = new SecureRandom();
 
     public CryptoService(AppProperties props) {
@@ -36,6 +41,24 @@ public class CryptoService {
             throw new IllegalStateException("CRYPTO_KEY precisa ter exatamente 32 bytes (base64)");
         }
         this.key = new SecretKeySpec(bytes, "AES");
+        try {
+            MessageDigest sha = MessageDigest.getInstance("SHA-256");
+            sha.update("moneyguard-fingerprint-v1".getBytes(StandardCharsets.UTF_8));
+            this.macKey = new SecretKeySpec(sha.digest(bytes), "HmacSHA256");
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** HMAC-SHA256 em hex (64 chars): identifica um texto sem permitir recupera-lo sem a chave. */
+    public String fingerprint(String text) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(macKey);
+            return HexFormat.of().formatHex(mac.doFinal(text.getBytes(StandardCharsets.UTF_8)));
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException("Falha ao gerar impressao digital", e);
+        }
     }
 
     public byte[] encrypt(String plain) {

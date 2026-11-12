@@ -27,6 +27,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query("select t.type, t.amount from Transaction t where t.userId = :userId")
     List<Object[]> findAllTypeAndAmount(Long userId);
 
+    boolean existsByUserIdAndImportKey(Long userId, String importKey);
+
+    @Query("select t.importKey from Transaction t where t.userId = :userId and t.importKey in :keys")
+    List<String> findExistingImportKeys(Long userId, java.util.Collection<String> keys);
+
     boolean existsByCategoryId(Long categoryId);
 
     boolean existsByRecurrenceIdAndOccurredOn(Long recurrenceId, LocalDate occurredOn);
