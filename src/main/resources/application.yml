@@ -12,6 +12,10 @@ spring:
     properties:
       hibernate:
         default_schema: moneyguard
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   flyway:
     schemas: moneyguard
     default-schema: moneyguard

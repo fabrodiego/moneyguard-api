@@ -64,6 +64,10 @@ public class Transaction {
     @Column(name = "recurrence_id", updatable = false)
     private Long recurrenceId;
 
+    /** Impressao digital da linha do extrato/fatura que gerou este lancamento (null = nao importado). */
+    @Column(name = "import_key", updatable = false)
+    private String importKey;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -93,6 +97,18 @@ public class Transaction {
             TransactionSource.RECURRENCE);
         t.recurrenceId = recurrenceId;
         return t;
+    }
+
+    public static Transaction fromImport(Long userId, Category category, Merchant merchant, BigDecimal amount,
+                                         String description, LocalDate occurredOn, String importKey) {
+        Transaction t = new Transaction(userId, category, merchant, amount, description, occurredOn,
+            TransactionSource.IMPORT);
+        t.importKey = importKey;
+        return t;
+    }
+
+    public String getImportKey() {
+        return importKey;
     }
 
     public Long getRecurrenceId() {
